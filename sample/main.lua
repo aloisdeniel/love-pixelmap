@@ -8,7 +8,7 @@ pixelmap.register("#86a36bff", "G", { "Ground" })
 pixelmap.register("#a47550ff", "C", { "Ground" })
 pixelmap.register("#6e5a4aff", "N")
 
-local map = pixelmap.load('map.png')
+local map = pixelmap.load('maps/map.png')
 
 -- 02. Drawing the result
 
