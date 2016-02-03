@@ -1,5 +1,5 @@
 local pixelmap = {
-  _VERSION     = 'pixelmap 1.0.0',
+  _VERSION     = 'pixelmap 1.1.0',
   _DESCRIPTION = 'loads a tilemap from pixel information of an image',
   _URL         = 'https://github.com/aloisdeniel/love-pixelmap.lua',
   _LICENSE     = [[
@@ -26,6 +26,8 @@ local pixelmap = {
   isCache = true,
   cacheLocation = function(imgPath) return ".pixelmap/" .. imgPath .. ".lua" end
 }
+
+local defaultColorKey = "_"
 
 -- Helpers
 
@@ -112,6 +114,20 @@ end
 
 -- Table serialization
 
+
+local function serializeIntArrays(v)
+  if type(v) == "table" then 
+    local values = {}
+    for _,cv in ipairs(v) do 
+      local serialized = serializeIntArrays(cv)
+      table.insert(values, serialized)
+    end
+    return "{ ".. table.concat(values, ", ") .. " }"
+  end
+  
+  return tostring(v)
+end
+
 local function serialize(v)
   local t = type(v)
   if t == "string" then 
@@ -121,7 +137,13 @@ local function serialize(v)
   elseif t == "table" then 
     local values = {}
     for key,value in pairs(v) do
-      table.insert(values, "["..serialize(key).."] = " .. serialize(value))
+      local serialized = nil
+      if key == "tiles" then
+        serialized = serializeIntArrays(value)
+      else
+        serialized = serialize(value)
+      end
+      table.insert(values, "["..serialize(key).."] = " .. serialized)
     end    
     return "{ ".. table.concat(values, ", ") .. " }"
   end  
@@ -130,7 +152,8 @@ end
 
 -- Registering tiles
 
-pixelmap.register = function(color, tile, groups)
+pixelmap.register = function(tile, color , groups)
+  color = color or defaultColorKey
   assert(type(color) == 'string', "color must be provided in hexadecimal format (#RRGGBBAA)")
   pixelmap.colors[string.lower(color)] = { tile= tile, groups = groups }
 end
@@ -138,6 +161,9 @@ end
 -- Loader
 
 pixelmap.load = function(path)  
+  
+  assert(pixelmap.colors[defaultColorKey], "a default tile must be defined (pixelmap.register('<tileId>')")
+  
   local localPath = pixelmap.cacheLocation(path)
   
   -- Loading result from local storage if available
@@ -151,26 +177,23 @@ pixelmap.load = function(path)
   local result = { tiles={},  groups={} }
   
   -- Extracting each tile from each pixel
-  for x=0,(dw-1) do
-    for y=0,(dh-1) do
+  for y=0,(dh-1) do
+    local row = {}
+    table.insert(result.tiles,row)
+    for x=0,(dw-1) do
       local r, g, b, a = data:getPixel(x,y)
-      if a > 0 then
-        local key = rgbaToHex(r, g, b, a)  
-        local value = pixelmap.colors[key]
-        assert(value,"color has not been registered : " .. key)
-        if not result.tiles[x] then result.tiles[x] = {} end
-        local column = result.tiles[x]
-        column[y] = value.tile
-        
-        if value.groups then
-          for _,groupName in ipairs(value.groups) do
-            local group = result.groups[groupName]
-            if not group then
-              group = {}
-              result.groups[groupName] = group
-            end
-            table.insert(group, {x,y})
+      local key = rgbaToHex(r, g, b, a)  
+      local value = pixelmap.colors[key] or pixelmap.colors[defaultColorKey]
+      table.insert(row,value.tile)
+      
+      if value.groups then
+        for _,groupName in ipairs(value.groups) do
+          local group = result.groups[groupName]
+          if not group then
+            group = {}
+            result.groups[groupName] = group
           end
+          table.insert(group, {x+1,y+1})
         end
       end
     end

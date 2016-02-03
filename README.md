@@ -7,20 +7,22 @@ A tile LÖVE map loader from pixel information of an image.
 ```lua
 local pixelmap = require('pixelmap')
 
-pixelmap.register("#86a36bff", "G", { "Ground" })
-pixelmap.register("#a47550ff", "C", { "Ground" })
-pixelmap.register("#6e5a4aff", "N")
+pixelmap.register(0) -- Default tile
+pixelmap.register(1, "#86a36bff", { "Ground" })
+pixelmap.register(2, "#a47550ff", { "Ground" })
+pixelmap.register(3, "#6e5a4aff")
 
 local map = pixelmap.load('map.png')
 
 --[[
 {
 	tiles= {
-		[2] = { [3]="G", [4]="C", [5]="C" },
-		[4] = { [1]="O" }
+		{0,0,0,0,0,0}
+		{0,0,1,1,0,3}
+		{0,0,2,2,0,3}
 	},
 	groups = {
-		"Ground" = { { x=2,y=3,w=1,h=3} }
+		"Ground" = { { x=3,y=2,w=2,h=2} }
 	}
 }]]
 
@@ -42,8 +44,8 @@ Indicates whether the loaded map should be saved as lua table in the folder `.pi
 
 Registers a tile and associate it to a pixel color. Groups can be added to generate area of tiles from same groups (collisions for example)
 
-* *arg* `color` - `string` - `required` : the RGBA hexadecimal color of the pixel color (ex: `"#ff2200ff"`).
 * *arg* `tile` - `object` - `required` : the value of the tile (could be its id, irs coords, ...). The structure must really simple in order to be serialized.
+* *arg* `color` - `string` - `optional` : the RGBA hexadecimal color of the pixel color (ex: `"#ff2200ff"`). If not precised, its the default tile.
 * *arg* `groups` - `array<string>` - `optional` : the group ids of the tile.
 
 
